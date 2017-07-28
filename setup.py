@@ -35,7 +35,6 @@ setup(
     install_requires=['typing;python_version<"3.5"'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
-    keywords=['SRS', 'Sender Rewriting Scheme', 'email'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Programming Language :: Python',
@@ -49,8 +48,10 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Topic :: Communications :: Email',
         'Topic :: Communications :: Email :: Mail Transport Agents',
+        'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Security',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
+        'Operating System :: OS Independent',
     ])
 
