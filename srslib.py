@@ -17,6 +17,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 """Python SRS (Sender Rewriting Scheme) library."""
 
+from typing import List, Tuple, Union
 import base64
 import datetime
 import hashlib
@@ -51,7 +52,7 @@ class SRS(object):
 
   Example usage:
 
-    srs = SRS('secret_key')
+    srs = SRS(b'secret_key')
     # Rewrites an email from alice@A.com to B.com
     rewritten_addr = srs.forward('alice@A.com', 'B.com')
     # Reverse it to get the address to bounce to.
@@ -99,6 +100,7 @@ class SRS(object):
       prev_secrets=[],
       validity_days=21,
       hash_length=4):
+    # type: (Union[str, bytes], List[Union[str, bytes]], int, int)
     """Creates a new SRS configuration instance.
 
     Args:
@@ -113,8 +115,8 @@ class SRS(object):
         self._TS_ALPHABET[i]: i
         for i in range(len(self._TS_ALPHABET))
     }
-    self._secret = secret
-    self._prev_secrets = prev_secrets
+    self._secret = self._to_bytes(secret)
+    self._prev_secrets = [self._to_bytes(secret) for secret in prev_secrets]
     self._validity_days = validity_days
     self._hash_length = hash_length
     # Cached list of all valid timestamps. The first element is the current
@@ -124,6 +126,7 @@ class SRS(object):
     self._time_fn = time.time
 
   def forward(self, from_addr, alias_host):
+    # type: (str, str) -> str
     """Rewrites sender address from_addr to alias_host.
 
     As described in the SRS specification, the algorithm is:
@@ -165,6 +168,7 @@ class SRS(object):
     return self.generate_srs0_address(from_host, from_local_part, alias_host)
 
   def reverse(self, srs_addr):
+    # type: (str) -> str
     """Reverses a rewritten address.
 
     As described in the SRS specification, the algorithm is:
@@ -203,6 +207,7 @@ class SRS(object):
 
   def generate_srs0_address(
       self, orig_host, orig_local_part, alias_host):
+    # type: (str, str, str) -> str
     """Produces an SRS0 address.
 
     Args:
@@ -223,6 +228,7 @@ class SRS(object):
 
   def generate_srs1_address(
       self, first_hop_host, first_hop_local_part, alias_host):
+    # type: (str, str, str) -> str
     """Produces an SRS1 address.
 
     Args:
@@ -240,6 +246,7 @@ class SRS(object):
         alias_host)
 
   def _split_addr(self, addr):
+    # type: (str) -> Tuple[str, str]
     """Splits an email address to (local_part, host)."""
     try:
       local_part, host = addr.split('@')
@@ -249,6 +256,7 @@ class SRS(object):
       return (local_part, host)
 
   def _hash(self, s, secret, hash_length):
+    # type: (str, bytes, int) -> str
     """Produces a hash string for use in an SRS address.
 
     As recommended in the specification, this function yields a base64-encoded
@@ -262,6 +270,7 @@ class SRS(object):
         .decode('utf-8'))
 
   def _check_hash(self, h, s, addr):
+    # type: (str, str, str) -> None
     """Checks a hash (h) against an input string (s).
 
     Following the canonical implementation (libsrs2), hashes are compared
@@ -281,6 +290,7 @@ class SRS(object):
       raise InvalidHashError('Invalid hash in SRS address: "%s"' % addr)
 
   def _generate_ts(self, t=None):
+    # type: (float) -> str
     """Produces a timestamp for use in an SRS0 address.
 
     Following the algorithm in the original paper, this function yields the UNIX
@@ -299,6 +309,7 @@ class SRS(object):
         ))
 
   def _check_ts(self, ts, addr):
+    # type: (str, str) -> None
     """Checks an encoded timestamp string against current time.
 
     Args:
@@ -320,4 +331,14 @@ class SRS(object):
     if ts.upper() not in self._valid_ts_cache:
       raise InvalidTimestampError(
           'Invalid timestamp in SRS address: "%s"' % addr)
+
+  def _to_bytes(self, secret):
+    # type: (Union[str, bytes]) -> bytes
+    """Ensures that a client-provided secret is in bytes."""
+    if isinstance(secret, bytes):
+      return secret
+    elif isinstance(secret, str):
+      return secret.encode('utf-8')
+    else:
+      raise Error('SRS secret must be bytes or str, got %s' % type(secret))
 

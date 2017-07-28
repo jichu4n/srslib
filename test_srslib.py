@@ -28,8 +28,8 @@ _srs = srslib.SRS(b'12345678')
 
 def test_forward_1st_hop():
   srs0_addr = _srs.forward('alice@example.com', '1st.com')
-  assert re.fullmatch(
-      r'SRS0=[A-Za-z0-9+/]{4}=[A-Z2-7]{2}=example[.]com=alice@1st[.]com',
+  assert re.match(
+      r'SRS0=[A-Za-z0-9+/]{4}=[A-Z2-7]{2}=example[.]com=alice@1st[.]com$',
       srs0_addr)
 
 
@@ -37,8 +37,8 @@ def test_forward_2nd_hop():
   srs1_addr = _srs.forward(
       'SRS0-ASd+=11=example.com=alice@1st.com',
       '2nd.com')
-  assert re.fullmatch(
-      r'SRS1=[A-Za-z0-9+/]{4}=1st[.]com=-ASd[+]=11=example[.]com=alice@2nd[.]com',
+  assert re.match(
+      r'SRS1=[A-Za-z0-9+/]{4}=1st[.]com=-ASd[+]=11=example[.]com=alice@2nd[.]com$',
       srs1_addr)
 
 
@@ -46,8 +46,8 @@ def test_forward_3nd_hop():
   srs1_addr = _srs.forward(
       'SRS1+ASd+=1st.com=-QwEr=11=example.com=alice@2nd.com',
       '3rd.com')
-  assert re.fullmatch(
-      r'SRS1=[A-Za-z0-9+/]{4}=1st[.]com=-QwEr=11=example[.]com=alice@3rd[.]com',
+  assert re.match(
+      r'SRS1=[A-Za-z0-9+/]{4}=1st[.]com=-QwEr=11=example[.]com=alice@3rd[.]com$',
       srs1_addr)
 
 

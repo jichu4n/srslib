@@ -27,6 +27,7 @@ setup(
     author_email='jichu4n@gmail.com',
     license='Apache 2.0',
     py_modules=['srslib'],
+    install_requires=['typing;python_version<"3.5"'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'])
 
