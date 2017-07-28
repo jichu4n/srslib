@@ -38,6 +38,12 @@ Example Usage
     except srslib.Error as e:
       ...  # Handle errors
 
+Documentation
+-------------
+
+The full documentation for **srslib** lives at
+https://srslib.readthedocs.io/.
+
 Implementation
 --------------
 
