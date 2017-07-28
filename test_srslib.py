@@ -88,7 +88,7 @@ def test_check_timestamp():
   i = 0
   while True:
     past_srs._time_fn = lambda: now - i * srslib.SRS._SECONDS_IN_DAY
-    if i > 0 and past_srs._generate_ts() == now_srs._generate_ts():
+    if i > 0 and past_srs.generate_ts() == now_srs.generate_ts():
       break
     srs0_addr = past_srs.forward('alice@example.com', '1st.com')
     if i < now_srs._validity_days:

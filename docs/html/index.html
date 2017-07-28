@@ -1,0 +1,381 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>srslib &#8212; srslib 0.1.2 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="srslib">
+<h1>srslib<a class="headerlink" href="#srslib" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="srslib.SRS">
+<em class="property">class </em><code class="descclassname">srslib.</code><code class="descname">SRS</code><span class="sig-paren">(</span><em>secret</em>, <em>prev_secrets=[]</em>, <em>validity_days=21</em>, <em>hash_length=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Sender Rewriting Scheme (SRS) instance.</p>
+<p>This class implements the Guarded scheme described in the original SRS paper
+at <a class="reference external" href="http://www.libsrs2.org/srs/srs.pdf">http://www.libsrs2.org/srs/srs.pdf</a>, with sensible defaults derived from the
+the canonical libsrs2 C implementation.</p>
+<p>Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">srs</span> <span class="o">=</span> <span class="n">SRS</span><span class="p">(</span><span class="s1">&#39;secret_key&#39;</span><span class="p">)</span>
+<span class="c1"># Rewrites an email from alice@A.com to B.com</span>
+<span class="n">rewritten_addr</span> <span class="o">=</span> <span class="n">srs</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="s1">&#39;alice@A.com&#39;</span><span class="p">,</span> <span class="s1">&#39;B.com&#39;</span><span class="p">)</span>
+<span class="c1"># Reverse it to get the address to bounce to.</span>
+<span class="n">bounce_addr</span> <span class="o">=</span> <span class="n">srs</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">rewritten_addr</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="srslib.SRS.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>secret</em>, <em>prev_secrets=[]</em>, <em>validity_days=21</em>, <em>hash_length=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new SRS configuration instance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>secret</strong> (<em>str|bytes</em>) – Cryptographic secret for creating / rwversing
+rewritten addresses.</li>
+<li><strong>prev_secrets</strong> (<em>list</em><em>(</em><em>str|bytes</em><em>)</em>) – Previously used secrets that are still
+considered valid for reversing rewritten addresses.</li>
+<li><strong>validity_days</strong> (<em>int</em>) – Number of days after which rewritten addresses cannot
+be reversed.</li>
+<li><strong>hash_length</strong> (<em>int</em>) – Length to truncate hash digest to.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.forward">
+<code class="descname">forward</code><span class="sig-paren">(</span><em>from_addr</em>, <em>alias_host</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rewrites sender address <cite>from_addr</cite> to <cite>alias_host</cite>.</p>
+<p>As described in the SRS specification, the algorithm is:</p>
+<blockquote>
+<div><ul class="simple">
+<li>If the envelope sender address (<cite>from_addr</cite>) is an SRS1 address
+rewritten by 1stHop.com to SRS0 and later by nthHop.com to SRS1, rewrite
+to a new SRS1 address such that bounces will go to us then 1stHop.com.</li>
+<li>If <cite>from_addr</cite> is an SRS0 address rewritten by 1stHop.com, rewrite to
+an SRS1 address such that bounces will go to us then back to 1stHop.com.</li>
+<li>If <cite>from_addr</cite> is neither an SRS0 address nor an SRS1 address, rewrite
+to an SRS0 address such that bounces will go to us then back to
+<cite>from_addr</cite>.</li>
+</ul>
+</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>from_addr</strong> (<em>str</em>) – The original envelope sender address.</li>
+<li><strong>alias_host</strong> (<em>str</em>) – The host to rewrite to (current host).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The envelope sender address rewritten to <cite>alias_host</cite>.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">str</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#srslib.InvalidAddressError" title="srslib.InvalidAddressError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidAddressError</span></code></a> – <cite>from_addr</cite> is not a valid email
+address.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.reverse">
+<code class="descname">reverse</code><span class="sig-paren">(</span><em>srs_addr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.reverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.reverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reverses a rewritten address.</p>
+<p>As described in the SRS specification, the algorithm is:</p>
+<blockquote>
+<div><ul class="simple">
+<li>If <cite>srs_addr</cite> is an SRS0 address rewritten by us, bounce to the
+original envelope sender address.</li>
+<li>If <cite>srs_addr</cite> is an SRS1 address rewritten by 1stHop.com and then
+us, bounce to the SRS0 address rewritten by 1stHop.com.</li>
+</ul>
+</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>srs_addr</strong> (<em>str</em>) – An SRS0 or SRS1 address.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The address to bounce to.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">str</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="#srslib.InvalidAddressError" title="srslib.InvalidAddressError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidAddressError</span></code></a> – <cite>srs_addr</cite> is not a valid email
+address.</li>
+<li><a class="reference internal" href="#srslib.InvalidHashError" title="srslib.InvalidHashError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidHashError</span></code></a> – The hash string in <cite>srs_addr</cite> is invalid.</li>
+<li><a class="reference internal" href="#srslib.InvalidTimestampError" title="srslib.InvalidTimestampError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidTimestampError</span></code></a> – The timestamp string in <cite>srs_addr</cite> is
+invalid or expired.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.generate_srs0_address">
+<code class="descname">generate_srs0_address</code><span class="sig-paren">(</span><em>orig_host</em>, <em>orig_local_part</em>, <em>alias_host</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.generate_srs0_address"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.generate_srs0_address" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces an SRS0 address.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>orig_host</strong> (<em>str</em>) – Host part of the original envelope sender address.</li>
+<li><strong>orig_local_part</strong> (<em>str</em>) – Local part of the original envelope sender address.</li>
+<li><strong>alias_host</strong> (<em>str</em>) – The host to rewrite to (current host).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The rewritten SRS0 address.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.generate_srs1_address">
+<code class="descname">generate_srs1_address</code><span class="sig-paren">(</span><em>first_hop_host</em>, <em>first_hop_local_part</em>, <em>alias_host</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.generate_srs1_address"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.generate_srs1_address" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces an SRS1 address.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>first_hop_host</strong> (<em>str</em>) – Address of the 1st hop (SRS0) host.</li>
+<li><strong>first_hop_local_part</strong> (<em>str</em>) – Local part generated by 1st hop host
+(w/o the “SRS0” prefix)</li>
+<li><strong>alias_host</strong> (<em>str</em>) – The host to rewrite to (current host).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The rewritten SRS1 address.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.generate_hash">
+<code class="descname">generate_hash</code><span class="sig-paren">(</span><em>s</em>, <em>secret</em>, <em>hash_length</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.generate_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.generate_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a hash string for use in an SRS address.</p>
+<p>As recommended in the specification, this function yields a base64-encoded
+hash of the provided string in lower case using the HMAC-SHA1 algorithm, and
+truncates it to hash_length characters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>s</strong> (<em>str</em>) – Input string to hash.</li>
+<li><strong>secret</strong> (<em>bytes</em>) – The cryptographic secret to use.</li>
+<li><strong>hash_length</strong> (<em>int</em>) – Length to truncate the generated hash digest to.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">SRS hash string, truncated to <cite>hash_length</cite>.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.check_hash">
+<code class="descname">check_hash</code><span class="sig-paren">(</span><em>h</em>, <em>s</em>, <em>addr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.check_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.check_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks a hash (<cite>h</cite>) against an input string (<cite>s</cite>).</p>
+<p>Following the canonical implementation (libsrs2), hashes are compared
+case-insensively.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>h</strong> (<em>str</em>) – A hash string possibly generated by the algorithm described in
+<cite>generate_hash</cite>.</li>
+<li><strong>s</strong> (<em>str</em>) – Original hashed string.</li>
+<li><strong>addr</strong> (<em>str</em>) – The full address being reversed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#srslib.InvalidHashError" title="srslib.InvalidHashError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidHashError</span></code></a> – Hash is invalid.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.generate_ts">
+<code class="descname">generate_ts</code><span class="sig-paren">(</span><em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.generate_ts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.generate_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a timestamp for use in an SRS0 address.</p>
+<p>Following the algorithm in the original paper, this function yields the UNIX
+timestamp of the current date modded by 2^10, encoded in base32.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>t</strong> (<em>float</em>) – If not None, specifies the UNIX timestamp to use instead of the
+current time.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="srslib.SRS.check_ts">
+<code class="descname">check_ts</code><span class="sig-paren">(</span><em>ts</em>, <em>addr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.check_ts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.check_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks an encoded timestamp string against current time.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ts</strong> (<em>str</em>) – A timestamp possibly generated by the algorithm described in
+<cite>generate_ts</cite>.</li>
+<li><strong>addr</strong> (<em>str</em>) – The full address being reversed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#srslib.InvalidTimestampError" title="srslib.InvalidTimestampError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidTimestampError</span></code></a> – timestamp is invalid.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="srslib.Error">
+<em class="property">class </em><code class="descclassname">srslib.</code><code class="descname">Error</code><a class="reference internal" href="_modules/srslib.html#Error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.Error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for SRS errors.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="srslib.InvalidAddressError">
+<em class="property">class </em><code class="descclassname">srslib.</code><code class="descname">InvalidAddressError</code><a class="reference internal" href="_modules/srslib.html#InvalidAddressError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.InvalidAddressError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invalid email address.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="srslib.InvalidHashError">
+<em class="property">class </em><code class="descclassname">srslib.</code><code class="descname">InvalidHashError</code><a class="reference internal" href="_modules/srslib.html#InvalidHashError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.InvalidHashError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invalid hash in an SRS address.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="srslib.InvalidTimestampError">
+<em class="property">class </em><code class="descclassname">srslib.</code><code class="descname">InvalidTimestampError</code><a class="reference internal" href="_modules/srslib.html#InvalidTimestampError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.InvalidTimestampError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invalid timestamp in an SRS address.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">srslib</a></h1>
+
+
+
+
+
+
+
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Chuan Ji.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,460 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>srslib &#8212; srslib 0.1.2 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for srslib</h1><div class="highlight"><pre>
+<span></span><span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#    Copyright (C) 2017 Chuan Ji &lt;jichu4n@gmail.com&gt;                          #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#    Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);          #</span>
+<span class="c1">#    you may not use this file except in compliance with the License.         #</span>
+<span class="c1">#    You may obtain a copy of the License at                                  #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0                              #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#    Unless required by applicable law or agreed to in writing, software      #</span>
+<span class="c1">#    distributed under the License is distributed on an &quot;AS IS&quot; BASIS,        #</span>
+<span class="c1">#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #</span>
+<span class="c1">#    See the License for the specific language governing permissions and      #</span>
+<span class="c1">#    limitations under the License.                                           #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #</span>
+<span class="sd">&quot;&quot;&quot;Sender Rewriting Scheme (SRS) library for Python.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">hmac</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+
+<div class="viewcode-block" id="Error"><a class="viewcode-back" href="../index.html#srslib.Error">[docs]</a><span class="k">class</span> <span class="nc">Error</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for SRS errors.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="InvalidAddressError"><a class="viewcode-back" href="../index.html#srslib.InvalidAddressError">[docs]</a><span class="k">class</span> <span class="nc">InvalidAddressError</span><span class="p">(</span><span class="n">Error</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Invalid email address.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="InvalidHashError"><a class="viewcode-back" href="../index.html#srslib.InvalidHashError">[docs]</a><span class="k">class</span> <span class="nc">InvalidHashError</span><span class="p">(</span><span class="n">Error</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Invalid hash in an SRS address.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="InvalidTimestampError"><a class="viewcode-back" href="../index.html#srslib.InvalidTimestampError">[docs]</a><span class="k">class</span> <span class="nc">InvalidTimestampError</span><span class="p">(</span><span class="n">Error</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Invalid timestamp in an SRS address.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="SRS"><a class="viewcode-back" href="../index.html#srslib.SRS">[docs]</a><span class="k">class</span> <span class="nc">SRS</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A Sender Rewriting Scheme (SRS) instance.</span>
+
+<span class="sd">  This class implements the Guarded scheme described in the original SRS paper</span>
+<span class="sd">  at http://www.libsrs2.org/srs/srs.pdf, with sensible defaults derived from the</span>
+<span class="sd">  the canonical libsrs2 C implementation.</span>
+
+<span class="sd">  Example usage:</span>
+
+<span class="sd">  .. code-block:: python</span>
+
+<span class="sd">    srs = SRS(&#39;secret_key&#39;)</span>
+<span class="sd">    # Rewrites an email from alice@A.com to B.com</span>
+<span class="sd">    rewritten_addr = srs.forward(&#39;alice@A.com&#39;, &#39;B.com&#39;)</span>
+<span class="sd">    # Reverse it to get the address to bounce to.</span>
+<span class="sd">    bounce_addr = srs.reverse(rewritten_addr)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># Regular expression matching SRS0 and SRS1 addresses.</span>
+  <span class="n">_SRS0_OPAQUE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      SRS0          # Prefix tag</span>
+<span class="s2">      ([-+=].+)     # Opaque part w/ leading separator, generated by 1st hop</span>
+<span class="s2">      &quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+  <span class="n">_SRS0</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      SRS0          # Prefix tag</span>
+<span class="s2">      [-+=]</span>
+<span class="s2">      ([^=]+)       # Hash</span>
+<span class="s2">      =</span>
+<span class="s2">      ([^=]+)       # Timestamp</span>
+<span class="s2">      =</span>
+<span class="s2">      ([^=]+)       # Envelope sender host</span>
+<span class="s2">      =</span>
+<span class="s2">      (.+)          # Envelope sender local part</span>
+<span class="s2">  &quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+  <span class="n">_SRS1</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      SRS1          # Prefix tag</span>
+<span class="s2">      [-+=]</span>
+<span class="s2">      ([^=]+)       # Hash</span>
+<span class="s2">      =</span>
+<span class="s2">      ([^=]+)       # 1st hop host</span>
+<span class="s2">      =</span>
+<span class="s2">      ([-+=].+)     # Opaque part w/ leading separator, generated by 1st hop</span>
+<span class="s2">      &quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+  <span class="c1"># 5-bit / base 32 alphabet for timestamp encoding as described in the spec.</span>
+  <span class="c1"># Note that this is NOT the same as RFC4648 or RFC3548 Base32 encoding, which </span>
+  <span class="c1"># are both 8-bit / base 256 encodings.</span>
+  <span class="n">_TS_ALPHABET</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span> <span class="o">+</span> <span class="s1">&#39;234567&#39;</span>
+  <span class="c1"># Reverse lookup table for _TS_ALPHABET. Defined in __init__() as list</span>
+  <span class="c1"># comprehensions in class scope cannot access class scope.</span>
+  <span class="n">_TS_REVERSE</span> <span class="o">=</span> <span class="p">{}</span>
+
+  <span class="n">_SECONDS_IN_DAY</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SRS.__init__"><a class="viewcode-back" href="../index.html#srslib.SRS.__init__">[docs]</a>  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span>
+      <span class="n">secret</span><span class="p">,</span>
+      <span class="n">prev_secrets</span><span class="o">=</span><span class="p">[],</span>
+      <span class="n">validity_days</span><span class="o">=</span><span class="mi">21</span><span class="p">,</span>
+      <span class="n">hash_length</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="c1"># type: (Union[str, bytes], List[Union[str, bytes]], int, int)</span>
+    <span class="sd">&quot;&quot;&quot;Creates a new SRS configuration instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      secret (str|bytes): Cryptographic secret for creating / rwversing</span>
+<span class="sd">        rewritten addresses.</span>
+<span class="sd">      prev_secrets (list(str|bytes)): Previously used secrets that are still</span>
+<span class="sd">        considered valid for reversing rewritten addresses.</span>
+<span class="sd">      validity_days (int): Number of days after which rewritten addresses cannot</span>
+<span class="sd">        be reversed.</span>
+<span class="sd">      hash_length (int): Length to truncate hash digest to.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TS_REVERSE</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_TS_ALPHABET</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">i</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_TS_ALPHABET</span><span class="p">))</span>
+    <span class="p">}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_secret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_bytes</span><span class="p">(</span><span class="n">secret</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_prev_secrets</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_to_bytes</span><span class="p">(</span><span class="n">secret</span><span class="p">)</span> <span class="k">for</span> <span class="n">secret</span> <span class="ow">in</span> <span class="n">prev_secrets</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_validity_days</span> <span class="o">=</span> <span class="n">validity_days</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_hash_length</span> <span class="o">=</span> <span class="n">hash_length</span>
+    <span class="c1"># Cached list of all valid timestamps. The first element is the current</span>
+    <span class="c1"># timestamp.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_valid_ts_cache</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Used for testing timestamp checks.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_time_fn</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span></div>
+
+<div class="viewcode-block" id="SRS.forward"><a class="viewcode-back" href="../index.html#srslib.SRS.forward">[docs]</a>  <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">from_addr</span><span class="p">,</span> <span class="n">alias_host</span><span class="p">):</span>
+    <span class="c1"># type: (str, str) -&gt; str</span>
+    <span class="sd">&quot;&quot;&quot;Rewrites sender address `from_addr` to `alias_host`.</span>
+
+<span class="sd">    As described in the SRS specification, the algorithm is:</span>
+
+<span class="sd">      - If the envelope sender address (`from_addr`) is an SRS1 address</span>
+<span class="sd">        rewritten by 1stHop.com to SRS0 and later by nthHop.com to SRS1, rewrite</span>
+<span class="sd">        to a new SRS1 address such that bounces will go to us then 1stHop.com.</span>
+
+<span class="sd">      - If `from_addr` is an SRS0 address rewritten by 1stHop.com, rewrite to</span>
+<span class="sd">        an SRS1 address such that bounces will go to us then back to 1stHop.com.</span>
+
+<span class="sd">      - If `from_addr` is neither an SRS0 address nor an SRS1 address, rewrite</span>
+<span class="sd">        to an SRS0 address such that bounces will go to us then back to</span>
+<span class="sd">        `from_addr`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      from_addr (str): The original envelope sender address.</span>
+<span class="sd">      alias_host (str): The host to rewrite to (current host).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      str: The envelope sender address rewritten to `alias_host`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      :obj:`srslib.InvalidAddressError`: `from_addr` is not a valid email</span>
+<span class="sd">        address.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">from_local_part</span><span class="p">,</span> <span class="n">from_host</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_addr</span><span class="p">(</span><span class="n">from_addr</span><span class="p">)</span>
+
+    <span class="c1"># Case 1: Address is an SRS1 address. We are hop &gt; 2, and we replace the</span>
+    <span class="c1"># hash with our own to generate a new SRS1 address that also bounces to the</span>
+    <span class="c1"># 1st hop.</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SRS1</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">from_local_part</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_srs1_address</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">alias_host</span><span class="p">)</span>
+
+    <span class="c1"># Case 2: Address is an SRS0 address. We are the 2nd hop, and we will return</span>
+    <span class="c1"># an SRS1 address that bounces to the 1st hop.</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SRS0_OPAQUE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">from_local_part</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_srs1_address</span><span class="p">(</span><span class="n">from_host</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">alias_host</span><span class="p">)</span>
+
+    <span class="c1"># Case 3: We are the 1st hop. We will return an SRS0 address.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_srs0_address</span><span class="p">(</span><span class="n">from_host</span><span class="p">,</span> <span class="n">from_local_part</span><span class="p">,</span> <span class="n">alias_host</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SRS.reverse"><a class="viewcode-back" href="../index.html#srslib.SRS.reverse">[docs]</a>  <span class="k">def</span> <span class="nf">reverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">srs_addr</span><span class="p">):</span>
+    <span class="c1"># type: (str) -&gt; str</span>
+    <span class="sd">&quot;&quot;&quot;Reverses a rewritten address.</span>
+
+<span class="sd">    As described in the SRS specification, the algorithm is:</span>
+
+<span class="sd">      - If `srs_addr` is an SRS0 address rewritten by us, bounce to the</span>
+<span class="sd">        original envelope sender address.</span>
+
+<span class="sd">      - If `srs_addr` is an SRS1 address rewritten by 1stHop.com and then</span>
+<span class="sd">        us, bounce to the SRS0 address rewritten by 1stHop.com.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      srs_addr (str): An SRS0 or SRS1 address.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      str: The address to bounce to.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      :obj:`srslib.InvalidAddressError`: `srs_addr` is not a valid email</span>
+<span class="sd">        address.</span>
+<span class="sd">      :obj:`srslib.InvalidHashError`: The hash string in `srs_addr` is invalid.</span>
+<span class="sd">      :obj:`srslib.InvalidTimestampError`: The timestamp string in `srs_addr` is</span>
+<span class="sd">        invalid or expired.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">from_local_part</span><span class="p">,</span> <span class="n">from_host</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_addr</span><span class="p">(</span><span class="n">srs_addr</span><span class="p">)</span>
+
+    <span class="c1"># Case 1: Address is an SRS1 address. We were hop n &gt;= 2 in the forwarding</span>
+    <span class="c1"># chain, and we will bounce back to hop 1.</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SRS1</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">from_local_part</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">check_hash</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">srs_addr</span><span class="p">)</span>
+      <span class="k">return</span> <span class="s1">&#39;SRS0</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="c1"># Case 2: Address is an SRS0 address. We were the first hop in the</span>
+    <span class="c1"># forwarding chain, and we will bounce back to the original envelope sender.</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SRS0</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">from_local_part</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">check_hash</span><span class="p">(</span>
+          <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">srs_addr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">check_ts</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">srs_addr</span><span class="p">)</span>
+      <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="k">raise</span> <span class="n">InvalidAddressError</span><span class="p">(</span><span class="s1">&#39;Unrecognized SRS address: &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">from_addr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SRS.generate_srs0_address"><a class="viewcode-back" href="../index.html#srslib.SRS.generate_srs0_address">[docs]</a>  <span class="k">def</span> <span class="nf">generate_srs0_address</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span> <span class="n">orig_host</span><span class="p">,</span> <span class="n">orig_local_part</span><span class="p">,</span> <span class="n">alias_host</span><span class="p">):</span>
+    <span class="c1"># type: (str, str, str) -&gt; str</span>
+    <span class="sd">&quot;&quot;&quot;Produces an SRS0 address.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      orig_host (str): Host part of the original envelope sender address.</span>
+<span class="sd">      orig_local_part (str): Local part of the original envelope sender address.</span>
+<span class="sd">      alias_host (str): The host to rewrite to (current host).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      str: The rewritten SRS0 address.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_ts</span><span class="p">()</span>
+    <span class="k">return</span> <span class="s1">&#39;SRS0=</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_hash</span><span class="p">(</span>
+            <span class="n">ts</span> <span class="o">+</span> <span class="n">orig_host</span> <span class="o">+</span> <span class="n">orig_local_part</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_secret</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hash_length</span><span class="p">),</span>
+        <span class="n">ts</span><span class="p">,</span>
+        <span class="n">orig_host</span><span class="p">,</span>
+        <span class="n">orig_local_part</span><span class="p">,</span>
+        <span class="n">alias_host</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SRS.generate_srs1_address"><a class="viewcode-back" href="../index.html#srslib.SRS.generate_srs1_address">[docs]</a>  <span class="k">def</span> <span class="nf">generate_srs1_address</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span> <span class="n">first_hop_host</span><span class="p">,</span> <span class="n">first_hop_local_part</span><span class="p">,</span> <span class="n">alias_host</span><span class="p">):</span>
+    <span class="c1"># type: (str, str, str) -&gt; str</span>
+    <span class="sd">&quot;&quot;&quot;Produces an SRS1 address.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      first_hop_host (str): Address of the 1st hop (SRS0) host.</span>
+<span class="sd">      first_hop_local_part (str): Local part generated by 1st hop host</span>
+<span class="sd">        (w/o the &quot;SRS0&quot; prefix)</span>
+<span class="sd">      alias_host (str): The host to rewrite to (current host).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      str: The rewritten SRS1 address.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;SRS1=</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_hash</span><span class="p">(</span>
+            <span class="n">first_hop_host</span> <span class="o">+</span> <span class="n">first_hop_local_part</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_secret</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hash_length</span><span class="p">),</span>
+        <span class="n">first_hop_host</span><span class="p">,</span>
+        <span class="n">first_hop_local_part</span><span class="p">,</span>
+        <span class="n">alias_host</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_split_addr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
+    <span class="c1"># type: (str) -&gt; Tuple[str, str]</span>
+    <span class="sd">&quot;&quot;&quot;Splits an email address to (local_part, host).&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">local_part</span><span class="p">,</span> <span class="n">host</span> <span class="o">=</span> <span class="n">addr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidAddressError</span><span class="p">(</span><span class="s1">&#39;Invalid from_addr address: &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">addr</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">local_part</span><span class="p">,</span> <span class="n">host</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SRS.generate_hash"><a class="viewcode-back" href="../index.html#srslib.SRS.generate_hash">[docs]</a>  <span class="k">def</span> <span class="nf">generate_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">secret</span><span class="p">,</span> <span class="n">hash_length</span><span class="p">):</span>
+    <span class="c1"># type: (str, bytes, int) -&gt; str</span>
+    <span class="sd">&quot;&quot;&quot;Produces a hash string for use in an SRS address.</span>
+
+<span class="sd">    As recommended in the specification, this function yields a base64-encoded</span>
+<span class="sd">    hash of the provided string in lower case using the HMAC-SHA1 algorithm, and</span>
+<span class="sd">    truncates it to hash_length characters.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      s (str): Input string to hash.</span>
+<span class="sd">      secret (bytes): The cryptographic secret to use.</span>
+<span class="sd">      hash_length (int): Length to truncate the generated hash digest to.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      str: SRS hash string, truncated to `hash_length`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span>
+            <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">secret</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+        <span class="p">[:</span><span class="n">hash_length</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="SRS.check_hash"><a class="viewcode-back" href="../index.html#srslib.SRS.check_hash">[docs]</a>  <span class="k">def</span> <span class="nf">check_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
+    <span class="c1"># type: (str, str, str) -&gt; None</span>
+    <span class="sd">&quot;&quot;&quot;Checks a hash (`h`) against an input string (`s`).</span>
+
+<span class="sd">    Following the canonical implementation (libsrs2), hashes are compared</span>
+<span class="sd">    case-insensively.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      h (str): A hash string possibly generated by the algorithm described in</span>
+<span class="sd">        `generate_hash`.</span>
+<span class="sd">      s (str): Original hashed string.</span>
+<span class="sd">      addr (str): The full address being reversed.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      :obj:`srslib.InvalidHashError`: Hash is invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">h</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_hash</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">secret</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">))</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">secret</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_secret</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_secrets</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="n">InvalidHashError</span><span class="p">(</span><span class="s1">&#39;Invalid hash in SRS address: &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">addr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SRS.generate_ts"><a class="viewcode-back" href="../index.html#srslib.SRS.generate_ts">[docs]</a>  <span class="k">def</span> <span class="nf">generate_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># type: (float) -&gt; str</span>
+    <span class="sd">&quot;&quot;&quot;Produces a timestamp for use in an SRS0 address.</span>
+
+<span class="sd">    Following the algorithm in the original paper, this function yields the UNIX</span>
+<span class="sd">    timestamp of the current date modded by 2^10, encoded in base32.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      t (float): If not None, specifies the UNIX timestamp to use instead of the</span>
+<span class="sd">        current time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">t</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_fn</span><span class="p">())</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SECONDS_IN_DAY</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_TS_ALPHABET</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">t</span> <span class="o">&gt;&gt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mb">0b11111</span><span class="p">,</span>
+            <span class="n">t</span> <span class="o">&amp;</span> <span class="mb">0b11111</span><span class="p">,</span>
+        <span class="p">))</span></div>
+
+<div class="viewcode-block" id="SRS.check_ts"><a class="viewcode-back" href="../index.html#srslib.SRS.check_ts">[docs]</a>  <span class="k">def</span> <span class="nf">check_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
+    <span class="c1"># type: (str, str) -&gt; None</span>
+    <span class="sd">&quot;&quot;&quot;Checks an encoded timestamp string against current time.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      ts (str): A timestamp possibly generated by the algorithm described in</span>
+<span class="sd">        `generate_ts`.</span>
+<span class="sd">      addr (str): The full address being reversed.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      :obj:`srslib.InvalidTimestampError`: timestamp is invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_valid_ts_cache</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_valid_ts_cache</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_ts</span><span class="p">()):</span>
+      <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_fn</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_valid_ts_cache</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">generate_ts</span><span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SECONDS_IN_DAY</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_validity_days</span><span class="p">)</span>
+      <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">ts</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_ts_cache</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidTimestampError</span><span class="p">(</span>
+          <span class="s1">&#39;Invalid timestamp in SRS address: &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">addr</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_to_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secret</span><span class="p">):</span>
+    <span class="c1"># type: (Union[str, bytes]) -&gt; bytes</span>
+    <span class="sd">&quot;&quot;&quot;Ensures that a client-provided secret is in bytes.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">secret</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">secret</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">secret</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">secret</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span><span class="s1">&#39;SRS secret must be bytes or str, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">secret</span><span class="p">))</span></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">srslib</a></h1>
+
+
+
+
+
+
+
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Chuan Ji.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

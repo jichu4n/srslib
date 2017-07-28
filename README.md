@@ -14,7 +14,7 @@ Highlights:
 pip install srslib
 ```
 
-## Example Usage
+## Usage
 
 ```py
 import srslib
@@ -32,6 +32,8 @@ try:
 except srslib.Error as e:
   ...  # Handle errors
 ```
+
+For more detailed information, please refer to the [**srslib** documentation](https://github.com/jichu4n/srslib/blob/master/docs/html/index.html).
 
 ## Implementation
 

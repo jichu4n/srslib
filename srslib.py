@@ -52,7 +52,9 @@ class SRS(object):
 
   Example usage:
 
-    srs = SRS(b'secret_key')
+  .. code-block:: python
+
+    srs = SRS('secret_key')
     # Rewrites an email from alice@A.com to B.com
     rewritten_addr = srs.forward('alice@A.com', 'B.com')
     # Reverse it to get the address to bounce to.
@@ -104,12 +106,13 @@ class SRS(object):
     """Creates a new SRS configuration instance.
 
     Args:
-      secret: Cryptographic secret for creating / reversing rewritten addresses.
-      prev_secrets: Previously used secrets that are still considered valid for
-        reversing rewritten addresses.
-      validity_days: Number of days after which rewritten addresses cannot
+      secret (str|bytes): Cryptographic secret for creating / rwversing
+        rewritten addresses.
+      prev_secrets (list(str|bytes)): Previously used secrets that are still
+        considered valid for reversing rewritten addresses.
+      validity_days (int): Number of days after which rewritten addresses cannot
         be reversed.
-      hash_length: Length to truncate hash digest to.
+      hash_length (int): Length to truncate hash digest to.
     """
     self._TS_REVERSE = {
         self._TS_ALPHABET[i]: i
@@ -127,27 +130,31 @@ class SRS(object):
 
   def forward(self, from_addr, alias_host):
     # type: (str, str) -> str
-    """Rewrites sender address from_addr to alias_host.
+    """Rewrites sender address `from_addr` to `alias_host`.
 
     As described in the SRS specification, the algorithm is:
 
-      - If the envelope sender address (from_addr) is an SRS1 address rewritten
-        by 1stHop.com to SRS0 and later by nthHop.com to SRS1, rewrite to a new
-        SRS1 address such that bounces will go to us then 1stHop.com.
+      - If the envelope sender address (`from_addr`) is an SRS1 address
+        rewritten by 1stHop.com to SRS0 and later by nthHop.com to SRS1, rewrite
+        to a new SRS1 address such that bounces will go to us then 1stHop.com.
 
-      - If from_addr is an SRS0 address rewritten by 1stHop.com, rewrite to
+      - If `from_addr` is an SRS0 address rewritten by 1stHop.com, rewrite to
         an SRS1 address such that bounces will go to us then back to 1stHop.com.
 
-      - If the from_addr is neither an SRS0 address nor an SRS1 address, rewrite
+      - If `from_addr` is neither an SRS0 address nor an SRS1 address, rewrite
         to an SRS0 address such that bounces will go to us then back to
-        from_addr.
+        `from_addr`.
 
     Args:
-      from_addr: The original envelope sender address.
-      alias_host: The host to rewrite to (current host).
+      from_addr (str): The original envelope sender address.
+      alias_host (str): The host to rewrite to (current host).
 
     Returns:
-      The envelope sender address rewritten to alias_host.
+      str: The envelope sender address rewritten to `alias_host`.
+
+    Raises:
+      :obj:`srslib.InvalidAddressError`: `from_addr` is not a valid email
+        address.
     """
     from_local_part, from_host = self._split_addr(from_addr)
 
@@ -173,17 +180,24 @@ class SRS(object):
 
     As described in the SRS specification, the algorithm is:
 
-      - If the from_addr is an SRS0 address rewritten by us, bounce to the
+      - If `srs_addr` is an SRS0 address rewritten by us, bounce to the
         original envelope sender address.
 
-      - If the from_addr is an SRS1 address rewritten by 1stHop.com and then
+      - If `srs_addr` is an SRS1 address rewritten by 1stHop.com and then
         us, bounce to the SRS0 address rewritten by 1stHop.com.
 
     Args:
-      srs_addr: The host to rewrite to (current host).
+      srs_addr (str): An SRS0 or SRS1 address.
 
     Returns:
-      The address to bounce to.
+      str: The address to bounce to.
+
+    Raises:
+      :obj:`srslib.InvalidAddressError`: `srs_addr` is not a valid email
+        address.
+      :obj:`srslib.InvalidHashError`: The hash string in `srs_addr` is invalid.
+      :obj:`srslib.InvalidTimestampError`: The timestamp string in `srs_addr` is
+        invalid or expired.
     """
     from_local_part, from_host = self._split_addr(srs_addr)
 
@@ -191,16 +205,16 @@ class SRS(object):
     # chain, and we will bounce back to hop 1.
     m = self._SRS1.match(from_local_part)
     if m:
-      self._check_hash(m.group(1), m.group(2) + m.group(3), srs_addr)
+      self.check_hash(m.group(1), m.group(2) + m.group(3), srs_addr)
       return 'SRS0%s@%s' % (m.group(3), m.group(2))
 
     # Case 2: Address is an SRS0 address. We were the first hop in the
     # forwarding chain, and we will bounce back to the original envelope sender.
     m = self._SRS0.match(from_local_part)
     if m:
-      self._check_hash(
+      self.check_hash(
           m.group(1), m.group(2) + m.group(3) + m.group(4), srs_addr)
-      self._check_ts(m.group(2), srs_addr)
+      self.check_ts(m.group(2), srs_addr)
       return '%s@%s' % (m.group(4), m.group(3))
 
     raise InvalidAddressError('Unrecognized SRS address: "%s"' % from_addr)
@@ -211,13 +225,16 @@ class SRS(object):
     """Produces an SRS0 address.
 
     Args:
-      orig_host: Host part of the original envelope sender address.
-      orig_local_part: Local part of the original envelope sender address.
-      alias_host: The host to rewrite to (current host).
+      orig_host (str): Host part of the original envelope sender address.
+      orig_local_part (str): Local part of the original envelope sender address.
+      alias_host (str): The host to rewrite to (current host).
+
+    Returns:
+      str: The rewritten SRS0 address.
     """
-    ts = self._generate_ts()
+    ts = self.generate_ts()
     return 'SRS0=%s=%s=%s=%s@%s' % (
-        self._hash(
+        self.generate_hash(
             ts + orig_host + orig_local_part,
             self._secret,
             self._hash_length),
@@ -232,12 +249,16 @@ class SRS(object):
     """Produces an SRS1 address.
 
     Args:
-      first_hop_host: Address of the 1st hop (SRS0) host.
-      first_hop_local_part: Local part generated by 1st host (w/o "SRS0" prefix)
-      alias_host: The host to rewrite to (current host).
+      first_hop_host (str): Address of the 1st hop (SRS0) host.
+      first_hop_local_part (str): Local part generated by 1st hop host
+        (w/o the "SRS0" prefix)
+      alias_host (str): The host to rewrite to (current host).
+
+    Returns:
+      str: The rewritten SRS1 address.
     """
     return 'SRS1=%s=%s=%s@%s' % (
-        self._hash(
+        self.generate_hash(
             first_hop_host + first_hop_local_part,
             self._secret,
             self._hash_length),
@@ -255,13 +276,21 @@ class SRS(object):
     else:
       return (local_part, host)
 
-  def _hash(self, s, secret, hash_length):
+  def generate_hash(self, s, secret, hash_length):
     # type: (str, bytes, int) -> str
     """Produces a hash string for use in an SRS address.
 
     As recommended in the specification, this function yields a base64-encoded
     hash of the provided string in lower case using the HMAC-SHA1 algorithm, and
     truncates it to hash_length characters.
+
+    Args:
+      s (str): Input string to hash.
+      secret (bytes): The cryptographic secret to use.
+      hash_length (int): Length to truncate the generated hash digest to.
+
+    Returns:
+      str: SRS hash string, truncated to `hash_length`.
     """
     return (
         base64.b64encode(
@@ -269,27 +298,28 @@ class SRS(object):
         [:hash_length]
         .decode('utf-8'))
 
-  def _check_hash(self, h, s, addr):
+  def check_hash(self, h, s, addr):
     # type: (str, str, str) -> None
-    """Checks a hash (h) against an input string (s).
+    """Checks a hash (`h`) against an input string (`s`).
 
     Following the canonical implementation (libsrs2), hashes are compared
     case-insensively.
 
     Args:
-      h: A hash string possibly generated by the algorithm described in _hash.
-      s: Original hashed string.
-      addr: The full address being reversed.
+      h (str): A hash string possibly generated by the algorithm described in
+        `generate_hash`.
+      s (str): Original hashed string.
+      addr (str): The full address being reversed.
 
     Raises:
-      InvalidHashError: Hash is invalid.
+      :obj:`srslib.InvalidHashError`: Hash is invalid.
     """
     if not any(
-        h.lower() == self._hash(s, secret, len(h)).lower()
+        h.lower() == self.generate_hash(s, secret, len(h)).lower()
         for secret in [self._secret] + self._prev_secrets):
       raise InvalidHashError('Invalid hash in SRS address: "%s"' % addr)
 
-  def _generate_ts(self, t=None):
+  def generate_ts(self, t=None):
     # type: (float) -> str
     """Produces a timestamp for use in an SRS0 address.
 
@@ -297,8 +327,8 @@ class SRS(object):
     timestamp of the current date modded by 2^10, encoded in base32.
 
     Args:
-      t: If not None, specifies the UNIX timestamp to use instead of the current
-        time.
+      t (float): If not None, specifies the UNIX timestamp to use instead of the
+        current time.
     """
     t = int((t or self._time_fn()) // self._SECONDS_IN_DAY)
     return ''.join(
@@ -308,23 +338,23 @@ class SRS(object):
             t & 0b11111,
         ))
 
-  def _check_ts(self, ts, addr):
+  def check_ts(self, ts, addr):
     # type: (str, str) -> None
     """Checks an encoded timestamp string against current time.
 
     Args:
-      ts: A timestamp possibly generated by the algorithm described in
-        _generate_ts.
-      addr: The full address being reversed.
+      ts (str): A timestamp possibly generated by the algorithm described in
+        `generate_ts`.
+      addr (str): The full address being reversed.
 
     Raises:
-      InvalidTimestampError: timestamp is invalid.
+      :obj:`srslib.InvalidTimestampError`: timestamp is invalid.
     """
     if (self._valid_ts_cache is None or
-        self._valid_ts_cache[0] != self._generate_ts()):
+        self._valid_ts_cache[0] != self.generate_ts()):
       now = self._time_fn()
       self._valid_ts_cache = [
-          self._generate_ts(now - i * self._SECONDS_IN_DAY)
+          self.generate_ts(now - i * self._SECONDS_IN_DAY)
           for i in range(self._validity_days)
       ]
 
