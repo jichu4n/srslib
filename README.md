@@ -26,8 +26,11 @@ rewritten_addr = srs.forward('alice@A.com', 'B.com')
 # => 'SRS0=ZPM1=67=A.com=alice@B.com'
 
 # Reverse it to get the address to bounce to.
-bounce_addr = srs.reverse(rewritten_addr)
-# => 'alice@A.com'
+try:
+  bounce_addr = srs.reverse(rewritten_addr)
+  # => 'alice@A.com'
+except srslib.Error as e:
+  ...  # Handle errors
 ```
 
 ## Implementation
