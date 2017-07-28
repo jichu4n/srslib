@@ -15,7 +15,7 @@
 #    limitations under the License.                                           #
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-"""Python SRS (Sender Rewriting Scheme) library."""
+"""Sender Rewriting Scheme (SRS) library for Python."""
 
 from typing import List, Tuple, Union
 import base64
@@ -44,7 +44,7 @@ class InvalidTimestampError(Error):
 
 
 class SRS(object):
-  """A SRS (Sender Rewriting Scheme) configuration instance.
+  """A Sender Rewriting Scheme (SRS) instance.
 
   This class implements the Guarded scheme described in the original SRS paper
   at http://www.libsrs2.org/srs/srs.pdf, with sensible defaults derived from the
