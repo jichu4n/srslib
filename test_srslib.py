@@ -98,3 +98,17 @@ def test_check_timestamp():
         now_srs.reverse(srs0_addr)
     i += 1
 
+def test_is_srs_address():
+  assert not srslib.SRS.is_srs_address('foo@example.com')
+  assert not srslib.SRS.is_srs_address('SRS0@example.com')
+  assert not srslib.SRS.is_srs_address('SRS0+@example.com')
+  assert not srslib.SRS.is_srs_address('SRS0=@example.com')
+  assert srslib.SRS.is_srs_address('SRS0=1@example.com', strict=False)
+  assert not srslib.SRS.is_srs_address('SRS0=1@example.com', strict=True)
+  srs0_addr = _srs.forward('foo@example.com', '1st.com')
+  assert srslib.SRS.is_srs_address(srs0_addr, strict=True)
+  assert srslib.SRS.is_srs_address(srs0_addr, strict=False)
+  srs1_addr = _srs.forward(srs0_addr, '2nd.com')
+  assert srslib.SRS.is_srs_address(srs1_addr, strict=True)
+  assert srslib.SRS.is_srs_address(srs1_addr, strict=False)
+

@@ -219,6 +219,27 @@ class SRS(object):
 
     raise InvalidAddressError('Unrecognized SRS address: "%s"' % from_addr)
 
+  @classmethod
+  def is_srs_address(cls, addr, strict=True):
+    # type: (str, bool) -> bool
+    """Checks if an address is a valid SRS address.
+
+    If strict is True, this function will only consider SRS0 addresses formatted
+    according to the Guarded scheme as valid. If strict is False, any address
+    with an SRS0 prefix and separator is considered valid.
+
+    Args:
+      addr (str): An email address, e.g. `foo@example.com`.
+      strict (bool): Whether to check SRS0 addresses in strict mode.
+
+    Raises:
+      :obj:`srslib.InvalidAddressError`: `addr` is not a valid email
+        address.
+    """
+    local_part, host = cls._split_addr(addr)
+    srs0 = cls._SRS0 if strict else cls._SRS0_OPAQUE
+    return bool(srs0.match(addr) or cls._SRS1.match(addr))
+
   def generate_srs0_address(
       self, orig_host, orig_local_part, alias_host):
     # type: (str, str, str) -> str
@@ -266,7 +287,8 @@ class SRS(object):
         first_hop_local_part,
         alias_host)
 
-  def _split_addr(self, addr):
+  @classmethod
+  def _split_addr(cls, addr):
     # type: (str) -> Tuple[str, str]
     """Splits an email address to (local_part, host)."""
     try:

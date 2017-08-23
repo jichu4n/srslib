@@ -260,6 +260,27 @@
 
     <span class="k">raise</span> <span class="n">InvalidAddressError</span><span class="p">(</span><span class="s1">&#39;Unrecognized SRS address: &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">from_addr</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="SRS.is_srs_address"><a class="viewcode-back" href="../index.html#srslib.SRS.is_srs_address">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">is_srs_address</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="c1"># type: (str, bool) -&gt; bool</span>
+    <span class="sd">&quot;&quot;&quot;Checks if an address is a valid SRS address.</span>
+
+<span class="sd">    If strict is True, this function will only consider SRS0 addresses formatted</span>
+<span class="sd">    according to the Guarded scheme as valid. If strict is False, any address</span>
+<span class="sd">    with an SRS0 prefix and separator is considered valid.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      addr (str): An email address, e.g. `foo@example.com`.</span>
+<span class="sd">      strict (bool): Whether to check SRS0 addresses in strict mode.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      :obj:`srslib.InvalidAddressError`: `addr` is not a valid email</span>
+<span class="sd">        address.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">local_part</span><span class="p">,</span> <span class="n">host</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_split_addr</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+    <span class="n">srs0</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_SRS0</span> <span class="k">if</span> <span class="n">strict</span> <span class="k">else</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_SRS0_OPAQUE</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">srs0</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_SRS1</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">addr</span><span class="p">))</span></div>
+
 <div class="viewcode-block" id="SRS.generate_srs0_address"><a class="viewcode-back" href="../index.html#srslib.SRS.generate_srs0_address">[docs]</a>  <span class="k">def</span> <span class="nf">generate_srs0_address</span><span class="p">(</span>
       <span class="bp">self</span><span class="p">,</span> <span class="n">orig_host</span><span class="p">,</span> <span class="n">orig_local_part</span><span class="p">,</span> <span class="n">alias_host</span><span class="p">):</span>
     <span class="c1"># type: (str, str, str) -&gt; str</span>
@@ -307,7 +328,8 @@
         <span class="n">first_hop_local_part</span><span class="p">,</span>
         <span class="n">alias_host</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_split_addr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
+  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_split_addr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
     <span class="c1"># type: (str) -&gt; Tuple[str, str]</span>
     <span class="sd">&quot;&quot;&quot;Splits an email address to (local_part, host).&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>

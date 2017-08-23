@@ -5,8 +5,10 @@ srslib
 **srslib** is a modern Python implementation of the `Sender Rewriting
 Scheme (SRS) <https://en.wikipedia.org/wiki/Sender_Rewriting_Scheme>`__.
 
-For an overview of this library, please refer to the GitHub repository at
-https://github.com/jichu4n/srslib.
+For an overview of this library and example usage, please refer to the GitHub
+repository at
+
+* https://github.com/jichu4n/srslib
 
 Module Documentation
 ====================

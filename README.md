@@ -31,6 +31,10 @@ try:
   # => 'alice@A.com'
 except srslib.Error as e:
   ...  # Handle errors
+
+# Check if addresses are valid SRS addresses.
+assert not srslib.SRS.is_srs_address('alice@A.com')
+assert srslib.SRS.is_srs_address(rewritten_addr)
 ```
 
 ## Documentation

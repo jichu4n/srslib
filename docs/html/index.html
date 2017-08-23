@@ -40,6 +40,15 @@
             
   <div class="section" id="srslib">
 <h1>srslib<a class="headerlink" href="#srslib" title="Permalink to this headline">¶</a></h1>
+<p><strong>srslib</strong> is a modern Python implementation of the <a class="reference external" href="https://en.wikipedia.org/wiki/Sender_Rewriting_Scheme">Sender Rewriting
+Scheme (SRS)</a>.</p>
+<p>For an overview of this library and example usage, please refer to the GitHub
+repository at</p>
+<ul class="simple">
+<li><a class="reference external" href="https://github.com/jichu4n/srslib">https://github.com/jichu4n/srslib</a></li>
+</ul>
+<div class="section" id="module-documentation">
+<h2>Module Documentation<a class="headerlink" href="#module-documentation" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="srslib.SRS">
 <em class="property">class </em><code class="descclassname">srslib.</code><code class="descname">SRS</code><span class="sig-paren">(</span><em>secret</em>, <em>prev_secrets=[]</em>, <em>validity_days=21</em>, <em>hash_length=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS" title="Permalink to this definition">¶</a></dt>
@@ -152,6 +161,31 @@ address.</li>
 <li><a class="reference internal" href="#srslib.InvalidTimestampError" title="srslib.InvalidTimestampError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidTimestampError</span></code></a> – The timestamp string in <cite>srs_addr</cite> is
 invalid or expired.</li>
 </ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="srslib.SRS.is_srs_address">
+<em class="property">classmethod </em><code class="descname">is_srs_address</code><span class="sig-paren">(</span><em>addr</em>, <em>strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/srslib.html#SRS.is_srs_address"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.SRS.is_srs_address" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if an address is a valid SRS address.</p>
+<p>If strict is True, this function will only consider SRS0 addresses formatted
+according to the Guarded scheme as valid. If strict is False, any address
+with an SRS0 prefix and separator is considered valid.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>addr</strong> (<em>str</em>) – An email address, e.g. <cite>foo&#64;example.com</cite>.</li>
+<li><strong>strict</strong> (<em>bool</em>) – Whether to check SRS0 addresses in strict mode.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#srslib.InvalidAddressError" title="srslib.InvalidAddressError"><code class="xref py py-obj docutils literal"><span class="pre">srslib.InvalidAddressError</span></code></a> – <cite>addr</cite> is not a valid email
+address.</p>
 </td>
 </tr>
 </tbody>
@@ -304,7 +338,7 @@ current time.</td>
 </dd></dl>
 
 <div class="section" id="exceptions">
-<h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
+<h3>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="srslib.Error">
 <em class="property">class </em><code class="descclassname">srslib.</code><code class="descname">Error</code><a class="reference internal" href="_modules/srslib.html#Error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#srslib.Error" title="Permalink to this definition">¶</a></dt>
@@ -329,6 +363,7 @@ current time.</td>
 <dd><p>Invalid timestamp in an SRS address.</p>
 </dd></dl>
 
+</div>
 </div>
 </div>
 

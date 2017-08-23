@@ -18,7 +18,7 @@
 
 from setuptools import setup
 
-_version = '0.1.2'
+_version = '0.1.3'
 
 setup(
     name='srslib',
