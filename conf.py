@@ -34,7 +34,7 @@ project = 'srslib'
 copyright = '2017, Chuan Ji'
 author = 'Chuan Ji'
 
-version = '0.1.2'
+version = '0.1.4'
 release = version
 
 master_doc = 'index'
