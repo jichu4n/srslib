@@ -217,7 +217,7 @@ class SRS(object):
       self.check_ts(m.group(2), srs_addr)
       return '%s@%s' % (m.group(4), m.group(3))
 
-    raise InvalidAddressError('Unrecognized SRS address: "%s"' % from_addr)
+    raise InvalidAddressError('Unrecognized SRS address: "%s"' % srs_addr)
 
   @classmethod
   def is_srs_address(cls, addr, strict=True):
