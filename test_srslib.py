@@ -100,6 +100,7 @@ def test_check_timestamp():
 
 def test_is_srs_address():
   assert not srslib.SRS.is_srs_address('foo@example.com')
+  assert not srslib.SRS.is_srs_address('"foo@bar"@example.com')
   assert not srslib.SRS.is_srs_address('SRS0@example.com')
   assert not srslib.SRS.is_srs_address('SRS0+@example.com')
   assert not srslib.SRS.is_srs_address('SRS0=@example.com')

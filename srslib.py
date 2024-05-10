@@ -292,7 +292,7 @@ class SRS(object):
     # type: (str) -> Tuple[str, str]
     """Splits an email address to (local_part, host)."""
     try:
-      local_part, host = addr.split('@')
+      local_part, host = addr.rsplit('@', 1)
     except ValueError:
       raise InvalidAddressError('Invalid from_addr address: "%s"' % addr)
     else:
