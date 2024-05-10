@@ -1,12 +1,8 @@
 # srslib - Sender Rewriting Scheme (SRS) library for Python
 
 **srslib** is a modern Python implementation of the [Sender Rewriting Scheme (SRS)](https://en.wikipedia.org/wiki/Sender_Rewriting_Scheme).
-
-Highlights:
-
-* Compatible with Python 2.7 and 3.x;
-* Implements the standard "Guarded" SRS scheme as described in the [original SRS paper](http://www.libsrs2.org/srs/srs.pdf);
-* Simple to use and understand.
+* Compatible with Python 2.7 and 3.x
+* Implements the standard "Guarded" SRS scheme as described in the [original SRS paper](http://www.libsrs2.org/srs/srs.pdf)
 
 ## Installation
 
