@@ -31,10 +31,10 @@ extensions = [
 ]
 
 project = 'srslib'
-copyright = '2017, Chuan Ji'
+copyright = '2017-2024, Chuan Ji'
 author = 'Chuan Ji'
 
-version = '0.1.4'
+version = '0.1.5'
 release = version
 
 master_doc = 'index'
